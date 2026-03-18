@@ -1,5 +1,6 @@
 """Tests for prediction utilities."""
 import pandas as pd
+import pytest
 
 
 class TestChurnPredictor:

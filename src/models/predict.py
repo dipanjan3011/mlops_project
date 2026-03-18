@@ -46,8 +46,6 @@ class ChurnPredictor:
                 self.model = mlflow.xgboost.load_model(model_uri)
 
                 # Load feature columns
-                run = client.get_run(version_info.run_id)
-                artifact_uri = run.info.artifact_uri
                 try:
                     feature_info = mlflow.artifacts.load_dict(
                         f"runs:/{version_info.run_id}/feature_columns.json"
