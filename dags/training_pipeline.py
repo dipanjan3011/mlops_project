@@ -15,7 +15,7 @@ Schedule: Manual trigger (can also be triggered by continuous_training DAG)
 from datetime import datetime, timedelta
 
 from airflow import DAG
-from airflow.operators.python import PythonOperator, BranchPythonOperator
+from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
 
 

@@ -1,6 +1,5 @@
 """Tests for data loading and cleaning."""
 import pandas as pd
-import pytest
 
 
 class TestLoadRawData:

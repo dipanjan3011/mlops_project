@@ -1,5 +1,4 @@
 """Integration tests for the FastAPI prediction API."""
-import pytest
 
 
 class TestHealthEndpoint:

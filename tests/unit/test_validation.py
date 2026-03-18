@@ -1,6 +1,5 @@
 """Tests for Great Expectations validation suites."""
 import pandas as pd
-import pytest
 
 
 class TestRawDataValidation:

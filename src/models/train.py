@@ -13,7 +13,6 @@ import warnings
 
 import mlflow
 import mlflow.xgboost
-import pandas as pd
 import xgboost as xgb
 from sklearn.metrics import (
     accuracy_score,

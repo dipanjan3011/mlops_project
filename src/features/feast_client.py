@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 from feast import FeatureStore, RepoConfig
-from feast.repo_config import RegistryConfig
 
 
 # Feast repo path — where feature_store.yaml lives

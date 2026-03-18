@@ -1,6 +1,4 @@
 """Tests for feature engineering functions."""
-import pandas as pd
-import pytest
 
 
 class TestTenureBuckets:

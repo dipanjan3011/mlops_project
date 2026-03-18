@@ -7,19 +7,15 @@ Computes comprehensive metrics and decides whether a newly trained model
 import os
 
 import mlflow
-import numpy as np
-import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
-    classification_report,
-    confusion_matrix,
     f1_score,
     precision_score,
     recall_score,
     roc_auc_score,
 )
 
-from models.hyperparams import MODEL_NAME, CHAMPION_ALIAS, CHALLENGER_ALIAS
+from models.hyperparams import MODEL_NAME, CHAMPION_ALIAS
 
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5001")
 

@@ -16,7 +16,6 @@ from evidently.metric_preset import DataDriftPreset, DataQualityPreset
 from evidently.metrics import (
     DatasetDriftMetric,
     DataDriftTable,
-    ColumnDriftMetric,
 )
 from prometheus_client import Gauge
 

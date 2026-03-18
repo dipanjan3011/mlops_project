@@ -9,7 +9,6 @@ import time
 
 import mlflow
 import pandas as pd
-import numpy as np
 
 from models.hyperparams import MODEL_NAME, CHAMPION_ALIAS
 

@@ -1,7 +1,5 @@
 """Tests for prediction utilities."""
 import pandas as pd
-import pytest
-from unittest.mock import MagicMock, patch
 
 
 class TestChurnPredictor:

@@ -11,7 +11,7 @@ import time
 from typing import Callable
 
 from fastapi import Request, Response
-from prometheus_client import Counter, Histogram, Gauge, Info
+from prometheus_client import Counter, Histogram, Info
 
 
 # === Prometheus Metrics ===
