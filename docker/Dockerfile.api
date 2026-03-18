@@ -12,8 +12,9 @@ RUN pip install --no-cache-dir "setuptools<81" -r requirements.txt
 
 COPY src/ ./src/
 COPY config/ ./config/
-COPY data/ ./data/
 COPY setup.py .
+
+RUN mkdir -p data/raw data/processed data/external
 RUN pip install -e .
 
 ENV PYTHONPATH=/app/src
