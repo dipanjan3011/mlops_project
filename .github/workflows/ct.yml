@@ -1,21 +1,46 @@
-name: Continuous Training
+name: CT — Continuous Training
 
 on:
   schedule:
     - cron: "0 6 * * 1"  # Every Monday at 6 AM UTC
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      force_retrain:
+        description: "Force retraining even if no drift detected"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: continuous-training
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.11"
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/mlops
 
 jobs:
-  continuous-training:
+  # ── Step 1: Drift Detection ─────────────────────────────────
+  detect-drift:
+    name: Detect Data Drift
     runs-on: ubuntu-latest
+    outputs:
+      drift_detected: ${{ steps.drift.outputs.drift_detected }}
+      drift_share: ${{ steps.drift.outputs.drift_share }}
+      should_retrain: ${{ steps.decide.outputs.should_retrain }}
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
@@ -26,32 +51,252 @@ jobs:
         run: |
           PYTHONPATH=src python -c "
           import pandas as pd
-          import os
+          import os, json
+
           ref_path = 'data/processed/reference.parquet'
           cur_path = 'data/processed/train.parquet'
-          if os.path.exists(ref_path) and os.path.exists(cur_path):
+
+          if not os.path.exists(ref_path) or not os.path.exists(cur_path):
+              print('No processed data found.')
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write('drift_detected=true\n')
+                  f.write('drift_share=1.0\n')
+          else:
               from monitoring.drift_detector import check_drift
               ref = pd.read_parquet(ref_path)
               cur = pd.read_parquet(cur_path)
               result = check_drift(ref, cur)
+
               print(f'Drift detected: {result[\"drift_detected\"]}')
-              if result['drift_detected']:
-                  print('::set-output name=retrain::true')
-              else:
-                  print('::set-output name=retrain::false')
-          else:
-              print('No processed data found. Running initial training.')
-              print('::set-output name=retrain::true')
+              print(f'Drift share: {result[\"drift_share\"]:.2%}')
+              print(f'Per-feature scores: {json.dumps(result[\"feature_scores\"], indent=2)}')
+
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write(f'drift_detected={str(result[\"drift_detected\"]).lower()}\n')
+                  f.write(f'drift_share={result[\"drift_share\"]}\n')
           "
+
+      - name: Decide on retraining
+        id: decide
+        run: |
+          FORCE="${{ github.event.inputs.force_retrain }}"
+          DRIFT="${{ steps.drift.outputs.drift_detected }}"
+          if [ "$FORCE" = "true" ] || [ "$DRIFT" = "true" ]; then
+            echo "should_retrain=true" >> "$GITHUB_OUTPUT"
+            echo "Will retrain (force=$FORCE, drift=$DRIFT)"
+          else
+            echo "should_retrain=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping retrain — no drift detected"
+          fi
+
+      - name: Generate drift report
+        if: always()
+        run: |
+          PYTHONPATH=src python -c "
+          import os, pandas as pd
+          ref_path = 'data/processed/reference.parquet'
+          cur_path = 'data/processed/train.parquet'
+          if os.path.exists(ref_path) and os.path.exists(cur_path):
+              from monitoring.drift_detector import generate_drift_report
+              ref = pd.read_parquet(ref_path)
+              cur = pd.read_parquet(cur_path)
+              generate_drift_report(ref, cur, 'drift_report.html')
+          " || true
+
+      - name: Upload drift report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-report
+          path: drift_report.html
+          retention-days: 30
+
+  # ── Step 2: Retrain Model ───────────────────────────────────
+  retrain:
+    name: Retrain Model
+    runs-on: ubuntu-latest
+    needs: detect-drift
+    if: needs.detect-drift.outputs.should_retrain == 'true'
+    outputs:
+      model_version: ${{ steps.train.outputs.model_version }}
+      f1_score: ${{ steps.train.outputs.f1_score }}
+    services:
+      postgres:
+        image: postgres:15
         env:
-          MLFLOW_TRACKING_URI: "http://localhost:5001"
+          POSTGRES_USER: mlops
+          POSTGRES_PASSWORD: mlops_password
+          POSTGRES_DB: mlops
+        ports:
+          - 5432:5432
+        options: --health-cmd "pg_isready -U mlops" --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Start MLflow server
+        run: |
+          mlflow server \
+            --backend-store-uri postgresql://mlops:mlops_password@localhost:5432/mlops \
+            --default-artifact-root ./mlartifacts \
+            --host 0.0.0.0 --port 5001 \
+            --allowed-hosts "*" &
+          sleep 10
+          curl -sf http://localhost:5001/health
+        env:
+          MLFLOW_TRACKING_URI: http://localhost:5001
+
+      - name: Validate raw data
+        run: |
+          PYTHONPATH=src python -c "
+          from data.load import load_raw_data
+          from validation.validate import validate_raw_data
+          df = load_raw_data()
+          result = validate_raw_data(df)
+          if not result['success']:
+              raise ValueError(f'Validation failed: {result}')
+          print('Data validation passed')
+          "
 
       - name: Preprocess data
-        if: steps.drift.outputs.retrain == 'true'
         run: PYTHONPATH=src python -m data.load
 
       - name: Train model
-        if: steps.drift.outputs.retrain == 'true'
-        run: PYTHONPATH=src python -m models.train
+        id: train
+        run: |
+          PYTHONPATH=src python -c "
+          import os, json
+          from models.train import train
+          model, metrics = train(tracking_uri='http://localhost:5001')
+          print(f'Metrics: {json.dumps(metrics, indent=2)}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'f1_score={metrics.get(\"test_f1\", metrics.get(\"f1\", 0))}\n')
+              f.write(f'model_version=latest\n')
+          "
         env:
-          MLFLOW_TRACKING_URI: "http://localhost:5001"
+          MLFLOW_TRACKING_URI: http://localhost:5001
+
+      - name: Upload training artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-artifacts
+          path: |
+            data/processed/*.parquet
+            mlartifacts/
+          retention-days: 90
+
+  # ── Step 3: Validate & Promote ──────────────────────────────
+  validate-model:
+    name: Validate & Promote Model
+    runs-on: ubuntu-latest
+    needs: retrain
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: mlops
+          POSTGRES_PASSWORD: mlops_password
+          POSTGRES_DB: mlops
+        ports:
+          - 5432:5432
+        options: --health-cmd "pg_isready -U mlops" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Download training artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: training-artifacts
+
+      - name: Start MLflow server
+        run: |
+          mlflow server \
+            --backend-store-uri postgresql://mlops:mlops_password@localhost:5432/mlops \
+            --default-artifact-root ./mlartifacts \
+            --host 0.0.0.0 --port 5001 \
+            --allowed-hosts "*" &
+          sleep 10
+
+      - name: Evaluate and promote model
+        run: |
+          PYTHONPATH=src python -c "
+          from models.evaluate import compare_champion_challenger
+          import mlflow
+          mlflow.set_tracking_uri('http://localhost:5001')
+
+          # Get latest run metrics
+          client = mlflow.tracking.MlflowClient()
+          experiment = client.get_experiment_by_name('telco-churn')
+          if experiment:
+              runs = client.search_runs(experiment.experiment_id, order_by=['start_time DESC'], max_results=1)
+              if runs:
+                  metrics = runs[0].data.metrics
+                  print(f'Latest run metrics: {metrics}')
+                  result = compare_champion_challenger(metrics, tracking_uri='http://localhost:5001')
+                  print(f'Promotion decision: {result[\"reason\"]}')
+              else:
+                  print('No runs found')
+          else:
+              print('No experiment found — first training run')
+          "
+        env:
+          MLFLOW_TRACKING_URI: http://localhost:5001
+
+  # ── Step 4: Redeploy if Model Changed ──────────────────────
+  trigger-deploy:
+    name: Trigger Deployment
+    runs-on: ubuntu-latest
+    needs: validate-model
+    steps:
+      - name: Trigger deploy workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy.yml',
+              ref: 'main',
+              inputs: { environment: 'staging' }
+            });
+            console.log('Deployment triggered after successful retraining');
+
+  # ── Notify ──────────────────────────────────────────────────
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [detect-drift, retrain, validate-model]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "## CT Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Drift Detection | ${{ needs.detect-drift.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Drift Detected | ${{ needs.detect-drift.outputs.drift_detected }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Drift Share | ${{ needs.detect-drift.outputs.drift_share }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Retraining | ${{ needs.retrain.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| F1 Score | ${{ needs.retrain.outputs.f1_score }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ${{ needs.validate-model.result }} |" >> $GITHUB_STEP_SUMMARY
