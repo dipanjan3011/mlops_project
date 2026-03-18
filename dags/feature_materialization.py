@@ -7,6 +7,7 @@ layer always has fresh feature values for real-time predictions.
 
 Schedule: Every hour
 """
+
 from datetime import datetime, timedelta
 
 from airflow import DAG
@@ -50,7 +51,6 @@ with DAG(
     catchup=False,
     tags=["features", "feast"],
 ) as dag:
-
     materialize = PythonOperator(
         task_id="materialize_features",
         python_callable=materialize_features_task,

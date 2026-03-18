@@ -7,6 +7,7 @@ Provides high-level functions to interact with the Feast feature store:
 - get_training_features(): Retrieve historical features for model training
 - get_online_features(): Retrieve real-time features for serving
 """
+
 import os
 import sys
 from datetime import datetime, timedelta
@@ -18,7 +19,8 @@ from feast import FeatureStore, RepoConfig
 # Feast repo path — where feature_store.yaml lives
 FEAST_REPO_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "config", "feast"
+    "config",
+    "feast",
 )
 
 # All feature references across the 3 feature views

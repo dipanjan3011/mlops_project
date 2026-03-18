@@ -4,6 +4,7 @@ Model prediction utilities.
 Loads the champion model from MLflow Model Registry and provides
 prediction functions for single records and batches.
 """
+
 import os
 import time
 
@@ -38,7 +39,9 @@ class ChurnPredictor:
         for attempt in range(max_retries):
             try:
                 # Get champion model version
-                version_info = client.get_model_version_by_alias(MODEL_NAME, CHAMPION_ALIAS)
+                version_info = client.get_model_version_by_alias(
+                    MODEL_NAME, CHAMPION_ALIAS
+                )
                 self.model_version = version_info.version
 
                 # Load the model
@@ -59,8 +62,10 @@ class ChurnPredictor:
 
             except Exception as e:
                 if attempt < max_retries - 1:
-                    wait = retry_delay * (2 ** attempt)
-                    print(f"Model load attempt {attempt + 1} failed: {e}. Retrying in {wait}s...")
+                    wait = retry_delay * (2**attempt)
+                    print(
+                        f"Model load attempt {attempt + 1} failed: {e}. Retrying in {wait}s..."
+                    )
                     time.sleep(wait)
                 else:
                     print(f"Failed to load model after {max_retries} attempts: {e}")

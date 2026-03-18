@@ -12,6 +12,7 @@ This DAG runs the complete ML training pipeline:
 
 Schedule: Manual trigger (can also be triggered by continuous_training DAG)
 """
+
 from datetime import datetime, timedelta
 
 from airflow import DAG
@@ -46,7 +47,14 @@ def validate_raw_data_task(**kwargs):
 
 def preprocess_data_task(**kwargs):
     """Load, clean, and split the data."""
-    from data.load import load_raw_data, clean_data, encode_target, add_event_timestamp, split_data, save_processed
+    from data.load import (
+        load_raw_data,
+        clean_data,
+        encode_target,
+        add_event_timestamp,
+        split_data,
+        save_processed,
+    )
 
     df = load_raw_data()
     df = clean_data(df)
@@ -61,12 +69,14 @@ def preprocess_data_task(**kwargs):
 def feast_apply_task(**kwargs):
     """Register feature definitions with Feast."""
     from features.feast_client import apply
+
     apply()
 
 
 def feast_materialize_task(**kwargs):
     """Push features from offline store to Redis online store."""
     from features.feast_client import materialize
+
     materialize()
 
 
@@ -118,7 +128,6 @@ with DAG(
     catchup=False,
     tags=["ml", "training"],
 ) as dag:
-
     validate = PythonOperator(
         task_id="validate_raw_data",
         python_callable=validate_raw_data_task,
@@ -152,4 +161,12 @@ with DAG(
     done = EmptyOperator(task_id="done")
 
     # Pipeline: validate → preprocess → feast → train → evaluate → done
-    validate >> preprocess >> feast_apply >> feast_materialize >> train_model >> evaluate >> done
+    (
+        validate
+        >> preprocess
+        >> feast_apply
+        >> feast_materialize
+        >> train_model
+        >> evaluate
+        >> done
+    )

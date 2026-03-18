@@ -8,12 +8,15 @@ Defines two validation suites:
 These validations run as part of the Airflow training pipeline to catch
 data quality issues before they affect model training.
 """
+
 import os
 import pandas as pd
 import great_expectations as gx
 
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
 
 
 def validate_raw_data(df: pd.DataFrame) -> dict:
@@ -109,7 +112,9 @@ def validate_processed_data(df: pd.DataFrame) -> dict:
 
     # service_count should be 0-7
     if "service_count" in df.columns:
-        validator.expect_column_values_to_be_between("service_count", min_value=0, max_value=7)
+        validator.expect_column_values_to_be_between(
+            "service_count", min_value=0, max_value=7
+        )
 
     # No nulls in critical columns
     for col in ["tenure", "MonthlyCharges", "TotalCharges", "Churn"]:

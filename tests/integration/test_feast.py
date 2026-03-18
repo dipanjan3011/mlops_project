@@ -3,6 +3,7 @@
 These tests require Redis to be running (provided by CI services config).
 They test the full Feast lifecycle: apply → materialize → retrieve.
 """
+
 import os
 import pytest
 
@@ -20,5 +21,6 @@ class TestFeastClient:
     def test_get_store(self):
         """Should create a FeatureStore instance."""
         from features.feast_client import get_store
+
         store = get_store()
         assert store is not None

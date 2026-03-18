@@ -7,6 +7,7 @@ This module handles:
 - Train/test splitting with stratification
 - Saving processed data as Parquet files
 """
+
 import os
 import pandas as pd
 from datetime import datetime
@@ -14,8 +15,12 @@ from sklearn.model_selection import train_test_split
 
 
 # Path configuration — works both locally and inside Docker
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RAW_DATA_PATH = os.path.join(PROJECT_ROOT, "data", "raw", "WA_Fn-UseC_-Telco-Customer-Churn.csv")
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+RAW_DATA_PATH = os.path.join(
+    PROJECT_ROOT, "data", "raw", "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+)
 PROCESSED_DIR = os.path.join(PROJECT_ROOT, "data", "processed")
 
 
@@ -74,7 +79,9 @@ def split_data(df: pd.DataFrame, test_size: float = 0.2, random_state: int = 42)
     return train_df.reset_index(drop=True), test_df.reset_index(drop=True)
 
 
-def save_processed(train_df: pd.DataFrame, test_df: pd.DataFrame, output_dir: str = PROCESSED_DIR):
+def save_processed(
+    train_df: pd.DataFrame, test_df: pd.DataFrame, output_dir: str = PROCESSED_DIR
+):
     """Save processed train/test DataFrames as Parquet files.
 
     Also saves the training set as reference.parquet for Evidently drift detection.

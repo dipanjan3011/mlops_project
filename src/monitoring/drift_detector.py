@@ -7,6 +7,7 @@ to detect distribution shifts that may degrade model performance.
 Exports drift scores as Prometheus gauges for Grafana dashboards and
 generates HTML reports for detailed analysis.
 """
+
 import os
 from datetime import datetime
 
@@ -37,7 +38,9 @@ FEATURE_DRIFT_SCORE = Gauge(
     ["feature_name"],
 )
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
 REPORTS_DIR = os.path.join(PROJECT_ROOT, "data", "reports")
 
 
@@ -63,7 +66,8 @@ def check_drift(
     # Select only numeric and relevant columns for drift analysis
     exclude_cols = {"customerID", "event_timestamp", "Churn"}
     numeric_cols = [
-        c for c in reference_df.select_dtypes(include=["number"]).columns
+        c
+        for c in reference_df.select_dtypes(include=["number"]).columns
         if c not in exclude_cols
     ]
 
@@ -71,10 +75,12 @@ def check_drift(
     cur_subset = current_df[numeric_cols].copy()
 
     # Build Evidently report
-    report = Report(metrics=[
-        DatasetDriftMetric(drift_share=drift_share_threshold),
-        DataDriftTable(),
-    ])
+    report = Report(
+        metrics=[
+            DatasetDriftMetric(drift_share=drift_share_threshold),
+            DataDriftTable(),
+        ]
+    )
 
     report.run(reference_data=ref_subset, current_data=cur_subset)
     result = report.as_dict()
@@ -133,10 +139,12 @@ def generate_drift_report(
     exclude_cols = {"customerID", "event_timestamp"}
     cols = [c for c in reference_df.columns if c not in exclude_cols]
 
-    report = Report(metrics=[
-        DataDriftPreset(),
-        DataQualityPreset(),
-    ])
+    report = Report(
+        metrics=[
+            DataDriftPreset(),
+            DataQualityPreset(),
+        ]
+    )
 
     report.run(
         reference_data=reference_df[cols],

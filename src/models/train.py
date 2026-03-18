@@ -8,6 +8,7 @@ in the MLflow Model Registry with a 'champion' alias.
 Usage:
     python -m models.train
 """
+
 import os
 import warnings
 
@@ -22,9 +23,21 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-from data.load import load_raw_data, clean_data, encode_target, add_event_timestamp, split_data, save_processed
+from data.load import (
+    load_raw_data,
+    clean_data,
+    encode_target,
+    add_event_timestamp,
+    split_data,
+    save_processed,
+)
 from data.preprocess import preprocess_for_training, get_feature_columns
-from models.hyperparams import XGBOOST_PARAMS, MODEL_NAME, CHAMPION_ALIAS, EXPERIMENT_NAME
+from models.hyperparams import (
+    XGBOOST_PARAMS,
+    MODEL_NAME,
+    CHAMPION_ALIAS,
+    EXPERIMENT_NAME,
+)
 
 warnings.filterwarnings("ignore")
 
@@ -88,8 +101,11 @@ def train(tracking_uri: str = MLFLOW_TRACKING_URI):
         # Train the model
         model = xgb.XGBClassifier(**XGBOOST_PARAMS)
         model.fit(
-            X_train, y_train,
-            eval_set=[(X_test, y_test)],  # Required for autolog to capture validation metrics
+            X_train,
+            y_train,
+            eval_set=[
+                (X_test, y_test)
+            ],  # Required for autolog to capture validation metrics
             verbose=False,
         )
 

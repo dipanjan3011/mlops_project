@@ -7,6 +7,7 @@ Tracks:
 - Prediction distribution (churn vs no-churn counts)
 - Current model version info gauge
 """
+
 import time
 from typing import Callable
 
@@ -59,10 +60,12 @@ def record_prediction(prediction: int, probability: float):
 
 def update_model_info(model_name: str, model_version: str):
     """Update the model info gauge."""
-    MODEL_INFO.info({
-        "name": model_name,
-        "version": str(model_version),
-    })
+    MODEL_INFO.info(
+        {
+            "name": model_name,
+            "version": str(model_version),
+        }
+    )
 
 
 async def metrics_middleware(request: Request, call_next: Callable) -> Response:

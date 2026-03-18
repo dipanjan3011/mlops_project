@@ -8,27 +8,46 @@ Creates derived features that improve model performance:
 - Automatic payment flag
 - One-hot encoding of categorical variables
 """
+
 import pandas as pd
 import numpy as np
 
 
 # Columns that indicate internet-based services
 INTERNET_SERVICES = [
-    "OnlineSecurity", "OnlineBackup", "DeviceProtection",
-    "TechSupport", "StreamingTV", "StreamingMovies",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
 ]
 
 # All categorical columns that need encoding
 CATEGORICAL_COLS = [
-    "gender", "Partner", "Dependents", "PhoneService", "MultipleLines",
-    "InternetService", "OnlineSecurity", "OnlineBackup", "DeviceProtection",
-    "TechSupport", "StreamingTV", "StreamingMovies", "Contract",
-    "PaperlessBilling", "PaymentMethod",
+    "gender",
+    "Partner",
+    "Dependents",
+    "PhoneService",
+    "MultipleLines",
+    "InternetService",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+    "Contract",
+    "PaperlessBilling",
+    "PaymentMethod",
 ]
 
 # Numeric columns used as features
 NUMERIC_COLS = [
-    "SeniorCitizen", "tenure", "MonthlyCharges", "TotalCharges",
+    "SeniorCitizen",
+    "tenure",
+    "MonthlyCharges",
+    "TotalCharges",
 ]
 
 
@@ -45,7 +64,9 @@ def create_tenure_buckets(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     bins = [0, 12, 24, 48, 60, 72]
     labels = ["0-12", "13-24", "25-48", "49-60", "61-72"]
-    df["tenure_bucket"] = pd.cut(df["tenure"], bins=bins, labels=labels, include_lowest=True)
+    df["tenure_bucket"] = pd.cut(
+        df["tenure"], bins=bins, labels=labels, include_lowest=True
+    )
     return df
 
 
@@ -76,9 +97,7 @@ def compute_charges_features(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = df.copy()
     df["avg_monthly_charge"] = np.where(
-        df["tenure"] > 0,
-        df["TotalCharges"] / df["tenure"],
-        df["MonthlyCharges"]
+        df["tenure"] > 0, df["TotalCharges"] / df["tenure"], df["MonthlyCharges"]
     )
     return df
 
@@ -89,7 +108,9 @@ def flag_automatic_payment(df: pd.DataFrame) -> pd.DataFrame:
     Automatic payment customers tend to have lower churn rates.
     """
     df = df.copy()
-    df["auto_payment"] = df["PaymentMethod"].str.contains("automatic", case=False).astype(int)
+    df["auto_payment"] = (
+        df["PaymentMethod"].str.contains("automatic", case=False).astype(int)
+    )
     return df
 
 

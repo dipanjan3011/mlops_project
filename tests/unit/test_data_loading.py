@@ -1,4 +1,5 @@
 """Tests for data loading and cleaning."""
+
 import pandas as pd
 
 
@@ -28,6 +29,7 @@ class TestCleanData:
     def test_total_charges_whitespace_handled(self, sample_raw_data):
         """Whitespace in TotalCharges should be converted to 0.0."""
         from data.load import clean_data
+
         cleaned = clean_data(sample_raw_data)
         # Row with tenure=0 had TotalCharges=" "
         tenure_zero = cleaned[cleaned["tenure"] == 0]

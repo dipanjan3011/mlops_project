@@ -9,6 +9,7 @@ This DAG monitors for data drift and triggers retraining when drift is detected:
 Schedule: Weekly (every Monday at 6 AM UTC)
 Can also be triggered manually.
 """
+
 from datetime import datetime, timedelta
 
 from airflow import DAG
@@ -39,7 +40,9 @@ def check_drift_task(**kwargs):
     import pandas as pd
 
     project_root = os.getenv("PROJECT_ROOT", "/opt/airflow")
-    reference_path = os.path.join(project_root, "data", "processed", "reference.parquet")
+    reference_path = os.path.join(
+        project_root, "data", "processed", "reference.parquet"
+    )
     current_path = os.path.join(project_root, "data", "processed", "train.parquet")
 
     # Check if required files exist
@@ -56,10 +59,14 @@ def check_drift_task(**kwargs):
         drift_result = check_drift(reference_df, current_df)
 
         if drift_result["drift_detected"]:
-            print(f"DRIFT DETECTED: {drift_result['drift_share']:.2%} of features drifted")
+            print(
+                f"DRIFT DETECTED: {drift_result['drift_share']:.2%} of features drifted"
+            )
             return "trigger_retrain"
         else:
-            print(f"No significant drift: {drift_result['drift_share']:.2%} of features drifted")
+            print(
+                f"No significant drift: {drift_result['drift_share']:.2%} of features drifted"
+            )
             return "skip_retrain"
 
     except Exception as e:
@@ -76,7 +83,6 @@ with DAG(
     catchup=False,
     tags=["ml", "monitoring", "ct"],
 ) as dag:
-
     check_drift = BranchPythonOperator(
         task_id="check_drift",
         python_callable=check_drift_task,

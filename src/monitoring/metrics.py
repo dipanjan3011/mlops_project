@@ -5,6 +5,7 @@ These gauges track model performance and data statistics that are
 updated during prediction and drift detection. They complement the
 API request metrics defined in serving/middleware.py.
 """
+
 from prometheus_client import Gauge, Summary
 
 

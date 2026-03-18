@@ -5,6 +5,7 @@ This module provides feature computation that can run independently
 of the Feast feature store — used as a fallback when Redis is unavailable
 or when features need to be computed on-the-fly from raw input.
 """
+
 import pandas as pd
 import numpy as np
 
@@ -50,8 +51,12 @@ def _add_service_count(df: pd.DataFrame) -> pd.DataFrame:
     """Count subscribed services."""
     df = df.copy()
     internet_services = [
-        "OnlineSecurity", "OnlineBackup", "DeviceProtection",
-        "TechSupport", "StreamingTV", "StreamingMovies",
+        "OnlineSecurity",
+        "OnlineBackup",
+        "DeviceProtection",
+        "TechSupport",
+        "StreamingTV",
+        "StreamingMovies",
     ]
     count = (df["PhoneService"] == "Yes").astype(int)
     for col in internet_services:
@@ -65,9 +70,7 @@ def _add_charge_features(df: pd.DataFrame) -> pd.DataFrame:
     """Compute average monthly charge."""
     df = df.copy()
     df["avg_monthly_charge"] = np.where(
-        df["tenure"] > 0,
-        df["TotalCharges"] / df["tenure"],
-        df["MonthlyCharges"]
+        df["tenure"] > 0, df["TotalCharges"] / df["tenure"], df["MonthlyCharges"]
     )
     return df
 
@@ -75,9 +78,9 @@ def _add_charge_features(df: pd.DataFrame) -> pd.DataFrame:
 def _add_auto_payment(df: pd.DataFrame) -> pd.DataFrame:
     """Flag automatic payment methods."""
     df = df.copy()
-    df["auto_payment"] = df["PaymentMethod"].str.contains(
-        "automatic", case=False
-    ).astype(int)
+    df["auto_payment"] = (
+        df["PaymentMethod"].str.contains("automatic", case=False).astype(int)
+    )
     return df
 
 
@@ -85,10 +88,22 @@ def _encode_categoricals(df: pd.DataFrame) -> pd.DataFrame:
     """One-hot encode categorical columns."""
     df = df.copy()
     categorical_cols = [
-        "gender", "Partner", "Dependents", "PhoneService", "MultipleLines",
-        "InternetService", "OnlineSecurity", "OnlineBackup", "DeviceProtection",
-        "TechSupport", "StreamingTV", "StreamingMovies", "Contract",
-        "PaperlessBilling", "PaymentMethod", "tenure_bucket",
+        "gender",
+        "Partner",
+        "Dependents",
+        "PhoneService",
+        "MultipleLines",
+        "InternetService",
+        "OnlineSecurity",
+        "OnlineBackup",
+        "DeviceProtection",
+        "TechSupport",
+        "StreamingTV",
+        "StreamingMovies",
+        "Contract",
+        "PaperlessBilling",
+        "PaymentMethod",
+        "tenure_bucket",
     ]
     encode_cols = [c for c in categorical_cols if c in df.columns]
     df = pd.get_dummies(df, columns=encode_cols, drop_first=True, dtype=int)
