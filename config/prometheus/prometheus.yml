@@ -1,0 +1,17 @@
+# Prometheus configuration for MLOps monitoring stack
+#
+# Scrapes metrics from the FastAPI prediction service every 15 seconds.
+# The /metrics endpoint exposes both API performance metrics and ML-specific
+# metrics (drift scores, prediction distribution, model info).
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # FastAPI prediction service
+  - job_name: "fastapi"
+    static_configs:
+      - targets: ["api:8000"]
+    metrics_path: /metrics
+    scrape_interval: 15s

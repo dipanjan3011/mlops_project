@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Docker
+docker-compose.override.yml
+
+# Data
+data/raw/*
+data/processed/*
+data/external/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/external/.gitkeep
+*.csv
+*.parquet
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# MLflow
+mlruns/
+mlflow/artifacts/
+mlartifacts/
+
+# DVC
+/storage/
+*.dvc.lock
+
+# Airflow
+airflow.db
+airflow.cfg
+webserver_config.py
+logs/
+airflow-worker.pid
+standalone_admin_password.txt
+
+# Feast
+feature_repo/data/
+config/feast/data/registry.db
+.feast/
+
+# Notebooks
+.ipynb_checkpoints/
+notebooks/drift_report.html
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Misc
+*.log
+*.bak
+*.tmp

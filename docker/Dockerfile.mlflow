@@ -1,0 +1,23 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir \
+    mlflow==3.10.1 \
+    psycopg2-binary==2.9.9
+
+EXPOSE 5000
+
+CMD ["mlflow", "server", \
+     "--backend-store-uri", "postgresql://mlops:mlops_password@postgres:5432/mlops", \
+     "--default-artifact-root", "mlflow-artifacts:/", \
+     "--artifacts-destination", "/mlflow/artifacts", \
+     "--serve-artifacts", \
+     "--host", "0.0.0.0", \
+     "--port", "5000", \
+     "--allowed-hosts", "*"]

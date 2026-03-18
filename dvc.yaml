@@ -1,0 +1,18 @@
+stages:
+  preprocess:
+    cmd: python -m data.load
+    deps:
+      - data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv
+      - src/data/load.py
+      - src/data/preprocess.py
+    outs:
+      - data/processed/train.parquet
+      - data/processed/test.parquet
+      - data/processed/reference.parquet
+
+  validate:
+    cmd: python -m validation.validate
+    deps:
+      - data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv
+      - data/processed/train.parquet
+      - src/validation/validate.py

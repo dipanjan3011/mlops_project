@@ -1,0 +1,57 @@
+name: Continuous Training
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # Every Monday at 6 AM UTC
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  continuous-training:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Check for drift
+        id: drift
+        run: |
+          PYTHONPATH=src python -c "
+          import pandas as pd
+          import os
+          ref_path = 'data/processed/reference.parquet'
+          cur_path = 'data/processed/train.parquet'
+          if os.path.exists(ref_path) and os.path.exists(cur_path):
+              from monitoring.drift_detector import check_drift
+              ref = pd.read_parquet(ref_path)
+              cur = pd.read_parquet(cur_path)
+              result = check_drift(ref, cur)
+              print(f'Drift detected: {result[\"drift_detected\"]}')
+              if result['drift_detected']:
+                  print('::set-output name=retrain::true')
+              else:
+                  print('::set-output name=retrain::false')
+          else:
+              print('No processed data found. Running initial training.')
+              print('::set-output name=retrain::true')
+          "
+        env:
+          MLFLOW_TRACKING_URI: "http://localhost:5001"
+
+      - name: Preprocess data
+        if: steps.drift.outputs.retrain == 'true'
+        run: PYTHONPATH=src python -m data.load
+
+      - name: Train model
+        if: steps.drift.outputs.retrain == 'true'
+        run: PYTHONPATH=src python -m models.train
+        env:
+          MLFLOW_TRACKING_URI: "http://localhost:5001"

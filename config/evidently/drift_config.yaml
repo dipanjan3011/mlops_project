@@ -1,0 +1,41 @@
+# Evidently drift detection configuration
+#
+# Defines which columns to monitor for drift and the thresholds
+# for triggering alerts/retraining.
+
+column_mapping:
+  target: Churn
+  numerical_features:
+    - tenure
+    - MonthlyCharges
+    - TotalCharges
+    - SeniorCitizen
+  categorical_features:
+    - gender
+    - Partner
+    - Dependents
+    - PhoneService
+    - MultipleLines
+    - InternetService
+    - OnlineSecurity
+    - OnlineBackup
+    - DeviceProtection
+    - TechSupport
+    - StreamingTV
+    - StreamingMovies
+    - Contract
+    - PaperlessBilling
+    - PaymentMethod
+
+thresholds:
+  # Fraction of features that must drift to trigger dataset-level drift
+  dataset_drift_share: 0.3
+  # Per-feature p-value threshold (used by Evidently's statistical tests)
+  feature_drift_threshold: 0.05
+
+alerts:
+  # If drift is detected, these actions can be triggered
+  on_drift_detected:
+    - trigger_retraining
+    - generate_report
+    - notify_slack  # placeholder — configure webhook separately

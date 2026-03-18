@@ -1,0 +1,15 @@
+# Auto-provision dashboards from the /var/lib/grafana/dashboards directory.
+# Dashboard JSON files placed there will be automatically loaded on startup.
+apiVersion: 1
+
+providers:
+  - name: "MLOps Dashboards"
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false
