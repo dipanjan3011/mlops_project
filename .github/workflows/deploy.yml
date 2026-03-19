@@ -102,7 +102,7 @@ jobs:
           cd "$HOME/mlops-deploy"
 
           export IMAGE_PREFIX=${{ env.IMAGE_PREFIX }}
-          export IMAGE_TAG=${{ github.sha }}
+          export IMAGE_TAG=latest
 
           # Pull latest images
           docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
