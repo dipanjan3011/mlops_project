@@ -89,30 +89,25 @@ jobs:
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Copy files to deploy directory
-        run: |
-          DEPLOY_DIR="$HOME/mlops-deploy"
-          mkdir -p "$DEPLOY_DIR"
-          cp docker-compose.yml docker-compose.prod.yml "$DEPLOY_DIR/"
-          cp -r config/ "$DEPLOY_DIR/config/"
-          cp -r docker/ "$DEPLOY_DIR/docker/"
-
       - name: Deploy with Docker Compose
         run: |
-          cd "$HOME/mlops-deploy"
+          cd /Users/dip/projects/mlops_project
 
           export IMAGE_PREFIX=${{ env.IMAGE_PREFIX }}
           export IMAGE_TAG=latest
 
-          # Pull latest images
+          # Stop existing dev containers and redeploy with production images
+          docker compose down --remove-orphans || true
+
+          # Pull latest GHCR images
           docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
 
-          # Deploy with rolling update
+          # Deploy with production overrides
           docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
 
           # Wait for services to be healthy
           echo "Waiting for services to start..."
-          sleep 30
+          sleep 45
 
           # Verify API is healthy
           curl -sf http://localhost:8000/health || exit 1
