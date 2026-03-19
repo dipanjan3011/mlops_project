@@ -105,10 +105,20 @@ jobs:
           # Deploy with production overrides
           docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
 
-          # Wait for services to be healthy
+          # Wait for services to be healthy (API depends on MLflow which takes ~2 min)
           echo "Waiting for services to start..."
-          sleep 45
-
-          # Verify API is healthy
-          curl -sf http://localhost:8000/health || exit 1
-          echo "Deployment successful!"
+          for i in $(seq 1 12); do
+            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+              echo "API is healthy!"
+              curl -s http://localhost:8000/health
+              echo ""
+              echo "Deployment successful!"
+              exit 0
+            fi
+            echo "Waiting for API... (attempt $i/12)"
+            sleep 15
+          done
+          echo "API did not become healthy in time"
+          docker ps
+          docker logs mlops_project-api-1 --tail 20
+          exit 1
