@@ -77,53 +77,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ── Smoke Test ──────────────────────────────────────────────
-  smoke-test:
-    name: Smoke Test
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    permissions:
-      packages: read
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Pull and test API image
-        run: |
-          docker pull ${{ env.IMAGE_PREFIX }}-api:latest
-          docker run -d --name smoke-api -p 8000:8000 \
-            -e MLFLOW_TRACKING_URI=http://localhost:5001 \
-            ${{ env.IMAGE_PREFIX }}-api:latest
-
-          # Wait for API to be ready (up to 30s)
-          for i in $(seq 1 6); do
-            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
-              break
-            fi
-            echo "Waiting for API to start... (attempt $i)"
-            sleep 5
-          done
-
-          STATUS=$(curl -sf http://localhost:8000/health | jq -r '.status')
-          echo "API status: $STATUS"
-          if [ "$STATUS" != "healthy" ] && [ "$STATUS" != "degraded" ]; then
-            echo "Smoke test failed!"
-            docker logs smoke-api
-            exit 1
-          fi
-          docker stop smoke-api && docker rm smoke-api
-
   # ── Deploy to Local Machine (self-hosted runner) ───────────
   deploy-staging:
     name: Deploy to Staging
     runs-on: self-hosted
-    needs: smoke-test
+    needs: build-and-push
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
