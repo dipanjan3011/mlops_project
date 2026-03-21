@@ -2,6 +2,8 @@
 
 End-to-end MLOps pipeline for predicting customer churn using the Telco Customer Churn dataset. Built with 100% open-source tools, deployable with a single `docker-compose up`.
 
+> **Want to recreate this project from scratch?** See the step-by-step [Project Recreation Guide](docs/PROJECT_RECREATION_GUIDE.md) — it explains every file, every concept, and every design decision.
+
 ## Architecture
 
 ```
